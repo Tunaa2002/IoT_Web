@@ -4,9 +4,9 @@
 #include <Wire.h>
 #include <BH1750.h>
 
-const char* ssid = "Not_Name";
-const char* password = "muoisokhong";
-#define MQTT_SERVER "192.168.2.106"
+const char* ssid = "TuanAnh";
+const char* password = "12121212";
+#define MQTT_SERVER "172.20.10.9"
 #define MQTT_PORT 1883
 #define MQTT_USER "Tunaa"
 #define MQTT_PASSWORD "12345678"
@@ -14,6 +14,9 @@ const char* password = "muoisokhong";
 #define MQTT_HUMIDITY_TOPIC "ESP32/DHT11/Humidity"
 #define MQTT_LED_TOPIC "ESP32/Led"
 #define MQTT_LIGHT_TOPIC "ESP32/Light"
+
+bool ledStateUpdated = false;
+#define MQTT_LED_CHECK_TOPIC "ESP32/LedCheck"
 
 #define LED1PIN 2
 #define  LED2PIN 18 
@@ -77,14 +80,23 @@ void callback(char* topic, byte *payload, unsigned int length) {
   if (strcmp(topic, MQTT_LED_TOPIC) == 0) {
     if (message.indexOf("on led1") != -1) {
       digitalWrite(LED1PIN, HIGH);
+      ledStateUpdated = true;
     } else if (message.indexOf("off led1") != -1) {
       digitalWrite(LED1PIN, LOW);
+      ledStateUpdated = true;
     } else if (message.indexOf("on led2") != -1) {
       digitalWrite(LED2PIN, HIGH);
+      ledStateUpdated = true;
     } else if (message.indexOf("off led2") != -1) {
       digitalWrite(LED2PIN, LOW);
+      ledStateUpdated = true;
     }
   }
+}
+
+void sendLedCheckResponse() {
+  client.publish(MQTT_LED_CHECK_TOPIC, ledStateUpdated ? "updated" : "not updated");
+  ledStateUpdated = false;
 }
 
 void setup() {
@@ -131,6 +143,7 @@ void loop() {
       
       uint16_t lux = lightMeter.readLightLevel();
       client.publish(MQTT_LIGHT_TOPIC, String(lux).c_str());
+      sendLedCheckResponse();
 
       Serial.print(F("Humidity: "));
       Serial.print(h);
